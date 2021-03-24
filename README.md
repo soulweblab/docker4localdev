@@ -1,8 +1,6 @@
 # Docker4LocalDev
 
-_by [Soulweb](https://soulweb.it)_
-
-Docker base URL: `docker.localdev`.
+Please, follow the full tutorial on [Medium](https://medium.com/soulweb-academy/docker-local-dev-stack-with-traefik-https-dnsmasq-locally-trusted-certificate-for-ubuntu-20-04-5f036c9af83d)!
 
 ## Run with Docker Compose
 
@@ -16,9 +14,9 @@ Docker base URL: `docker.localdev`.
 
 ## Locally-trusted certificate
 
-You need to generate your own locally-trusted certificates.
+You need to generate your own _locally-trusted_ certificate.
 
-Install [mkcert](https://github.com/FiloSottile/mkcert) on your system.
+Install [Mkcert](https://github.com/FiloSottile/mkcert) on your system.
 
 Once installed, run `mkcert-install`.
 
