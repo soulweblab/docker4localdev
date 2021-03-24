@@ -1,0 +1,100 @@
+version: '3'
+
+services:
+  traefik:
+    image: traefik:v2.0
+    container_name: "${DOCKER_NAME}_traefik"
+    command:
+      - --providers.docker=true
+      # Enable the API handler in insecure mode,
+      # which means that the Traefik Dashboard will be available directly
+      # on the entry point named traefik.
+      - --api.insecure=true
+      # Defines the path to the configuration file with the certificates list.
+      - --providers.file.filename=/root/.config/ssl.toml
+      # Define Traefik entry points to port [80] for http and port [443] for https.
+      - --entrypoints.web.address=:80
+      - --entrypoints.websecure.address=:443
+    networks:
+      # Define the network on which traefik is going to operate.
+      - web
+    ports:
+      # Open traefik http [80] and https [443] ports.
+      - '80:80'
+      - '443:443'
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock
+      # Mount the configuration file with the certificates list.
+      - ./traefik-ssl.toml:/root/.config/ssl.toml
+      # Mount the folder containing the certificates for https.
+      - ./certs/:/certs/
+    labels:
+      - "traefik.enable=true"
+      # Enable Traefik Dashboard entrypoint on http.
+      - "traefik.http.routers.traefik-http.entrypoints=web"
+      # Define Traefik Dashboard http host.
+      - "traefik.http.routers.traefik-http.rule=Host(`${DOCKER_BASE_URL}`)"
+      # Define http middleware and redirection to https.
+      - "traefik.http.routers.traefik-http.middlewares=traefik-https"
+      - "traefik.http.middlewares.traefik-https.redirectscheme.scheme=https"
+      # Enable Traefik Dashboard entrypoint on https.
+      - "traefik.http.routers.traefik.entrypoints=websecure"
+      # By default the Traefik Dashboard operates on the port [8080].
+      # Define a load balancer to route the entry point to [8080].
+      - "traefik.http.services.traefik.loadbalancer.server.port=8080"
+      # Define Traefik Dashboard host.
+      - "traefik.http.routers.traefik.rule=Host(`${DOCKER_BASE_URL}`)"
+      # Instructs Traefik that the current router is dedicated to HTTPS requests only.
+      - "traefik.http.routers.traefik.tls=true"
+
+  portainer:
+    image: portainer/portainer
+    container_name: "${DOCKER_NAME}_portainer"
+    command: --no-auth -H unix:///var/run/docker.sock
+    networks:
+      - web
+    volumes:
+    - /var/run/docker.sock:/var/run/docker.sock
+    labels:
+      # Enable Portainer handler entrypoint on http.
+      - "traefik.http.routers.${DOCKER_NAME}_portainer-http.entrypoints=web"
+      # Define Portainer handler http host.
+      - "traefik.http.routers.${DOCKER_NAME}_portainer-http.rule=Host(`portainer.${DOCKER_BASE_URL}`)"
+      # Define http middleware and redirection to https.
+      - "traefik.http.routers.${DOCKER_NAME}_portainer-http.middlewares=${DOCKER_NAME}_portainer-https"
+      - "traefik.http.middlewares.${DOCKER_NAME}_portainer-https.redirectscheme.scheme=https"
+      # Enable Portainer handler entrypoint on https.
+      - "traefik.http.routers.${DOCKER_NAME}_portainer.entrypoints=websecure"
+      # Define Portainer handler host.
+      - "traefik.http.routers.${DOCKER_NAME}_portainer.rule=Host(`portainer.${DOCKER_BASE_URL}`)"
+      # Instructs Traefik that the current router is dedicated to HTTPS requests only.
+      - "traefik.http.routers.${DOCKER_NAME}_portainer.tls=true"
+      # Define on which network Traefik is operating.
+      - "traefik.docker.network=web"
+
+  whoami:
+    image: containous/whoami
+    container_name: "${DOCKER_NAME}_whoami"
+    networks:
+      - web
+    labels:
+      # Enable Whoami handler entrypoint on http.
+      - "traefik.http.routers.${DOCKER_NAME}_whoami-http.entrypoints=web"
+      # Define Whoami handler http host.
+      - "traefik.http.routers.${DOCKER_NAME}_whoami-http.rule=Host(`whoami.${DOCKER_BASE_URL}`)"
+      # Define http middleware and redirection to https.
+      - "traefik.http.routers.${DOCKER_NAME}_whoami-http.middlewares=${DOCKER_NAME}_whoami-https"
+      - "traefik.http.middlewares.${DOCKER_NAME}_whoami-https.redirectscheme.scheme=https"
+      # Enable Whoami handler entrypoint on https.
+      - "traefik.http.routers.${DOCKER_NAME}_whoami.entrypoints=websecure"
+      # Define Whoami handler host.
+      - "traefik.http.routers.${DOCKER_NAME}_whoami.rule=Host(`whoami.${DOCKER_BASE_URL}`)"
+      # Instructs Whoami that the current router is dedicated to HTTPS requests only.
+      - "traefik.http.routers.${DOCKER_NAME}_whoami.tls=true"
+      # Define on which network Traefik is operating.
+      - "traefik.docker.network=web"
+
+networks:
+  # Define the network on which is going to operate Traefik.
+  web:
+    external: true

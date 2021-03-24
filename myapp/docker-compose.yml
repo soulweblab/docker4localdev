@@ -1,0 +1,34 @@
+version: '3'
+
+services:
+  webapp:
+    build:
+      context: .
+      dockerfile: Dockerfile
+      args:
+        python_tag: $PYTHON_TAG
+    image: myapp:0.1
+    working_dir: /app
+    networks:
+      - web
+    environment:
+      - PORT=80
+      - FLASK_APP=main.py
+      - FLASK_DEBUG=1
+      - 'RUN=flask run --host=0.0.0.0 --port=80'
+    volumes:
+      - ./app:/app
+    command: flask run --host=0.0.0.0 --port=80
+    labels:
+      - "traefik.http.routers.webapp-http.entrypoints=web"
+      - "traefik.http.routers.webapp-http.rule=Host(`${PROJECT_BASE_URL}`)"
+      - "traefik.http.routers.webapp-http.middlewares=webapp-https"
+      - "traefik.http.middlewares.webapp-https.redirectscheme.scheme=https"
+      - "traefik.http.routers.webapp.entrypoints=websecure"
+      - "traefik.http.routers.webapp.rule=Host(`${PROJECT_BASE_URL}`)"
+      - "traefik.http.routers.webapp.tls=true"
+      - "traefik.docker.network=web"
+
+networks:
+  web:
+    external: true
